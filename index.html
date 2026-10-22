@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0F1115">
+  <title>Копійка</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <!-- Шапка: назва зліва, кнопка налаштувань справа -->
+  <header class="app-header">
+    <h1 class="app-title">Копійка</h1>
+    <button class="icon-btn" type="button" data-screen="settings" aria-label="Налаштування">⚙️</button>
+  </header>
+
+  <!-- Екрани. Видно тільки той, у якого є клас active -->
+  <main class="app-main">
+    <section class="screen active" id="screen-home">
+      <h2>Головна</h2>
+      <p class="muted">Тут буде баланс за місяць і останні записи.</p>
+    </section>
+
+    <section class="screen" id="screen-budget">
+      <h2>Бюджет</h2>
+      <p class="muted">Тут будуть ліміти за категоріями.</p>
+    </section>
+
+    <section class="screen" id="screen-subscriptions">
+      <h2>Підписки</h2>
+      <p class="muted">Тут будуть твої регулярні платежі.</p>
+    </section>
+
+    <section class="screen" id="screen-goals">
+      <h2>Цілі</h2>
+      <p class="muted">Тут будуть цілі накопичення.</p>
+    </section>
+
+    <section class="screen" id="screen-stats">
+      <h2>Статистика</h2>
+      <p class="muted">Тут буде діаграма витрат.</p>
+    </section>
+
+    <section class="screen" id="screen-settings">
+      <h2>Налаштування</h2>
+      <p class="muted">Тут будуть валюта, бекап і інші налаштування.</p>
+    </section>
+  </main>
+
+  <!-- Нижня панель навігації -->
+  <nav class="tab-bar" aria-label="Навігація">
+    <button class="tab" type="button" data-screen="home">
+      <span class="tab-icon" aria-hidden="true">🏠</span>
+      <span class="tab-label">Головна</span>
+    </button>
+    <button class="tab" type="button" data-screen="budget">
+      <span class="tab-icon" aria-hidden="true">📊</span>
+      <span class="tab-label">Бюджет</span>
+    </button>
+    <button class="tab-add" type="button" id="add-btn" aria-label="Новий запис">＋</button>
+    <button class="tab" type="button" data-screen="subscriptions">
+      <span class="tab-icon" aria-hidden="true">🔁</span>
+      <span class="tab-label">Підписки</span>
+    </button>
+    <button class="tab" type="button" data-screen="goals">
+      <span class="tab-icon" aria-hidden="true">🎯</span>
+      <span class="tab-label">Цілі</span>
+    </button>
+  </nav>
+
+  <!-- Нижня панель (bottom sheet) для нового запису -->
+  <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <h2 id="sheet-title">Новий запис</h2>
+    <div class="sheet-body">
+      <!-- Форма з'явиться у версії 0.2 -->
+    </div>
+    <button class="btn" type="button" id="sheet-close">Закрити</button>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

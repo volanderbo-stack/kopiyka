@@ -1,0 +1,227 @@
+/* ===== Кольори та розміри ===== */
+:root {
+  --bg: #0F1115;          /* фон */
+  --card: #1A1D23;        /* картки */
+  --text: #F2F3F5;        /* основний текст */
+  --muted: #8A8F98;       /* другорядний текст */
+  --accent: #3DDC97;      /* акцент */
+  --danger: #FF5C5C;      /* помилка / перевищення */
+
+  --gap: 16px;            /* стандартний відступ */
+  --radius: 14px;         /* заокруглення */
+  --max-width: 480px;     /* ширина контенту */
+  --tap: 44px;            /* мінімальна висота кнопки */
+  --header-h: 56px;
+  --tabbar-h: 64px;
+
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ===== Базові стилі ===== */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.4;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2 {
+  margin: 0 0 8px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* ===== Шапка ===== */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: var(--max-width);
+  height: var(--header-h);
+  margin: 0 auto;
+  padding: 0 var(--gap);
+  background: var(--bg);
+}
+
+.app-title {
+  font-size: 22px;
+  margin: 0;
+}
+
+.icon-btn {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  font-size: 22px;
+}
+
+.icon-btn:active {
+  background: var(--card);
+}
+
+/* ===== Екрани ===== */
+.app-main {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--gap);
+  /* місце під нижню панель, щоб вона не закривала контент */
+  padding-bottom: calc(var(--tabbar-h) + var(--gap) * 2 + env(safe-area-inset-bottom));
+}
+
+.screen {
+  display: none;
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: var(--gap);
+}
+
+.screen.active {
+  display: block;
+}
+
+/* ===== Нижня панель навігації ===== */
+.tab-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  max-width: var(--max-width);
+  height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  margin: 0 auto;
+  padding: 0 8px env(safe-area-inset-bottom);
+  background: var(--card);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--tap);
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.tab-icon {
+  font-size: 20px;
+  /* неактивні іконки трохи тьмяніші */
+  opacity: 0.6;
+}
+
+.tab.active {
+  color: var(--accent);
+}
+
+.tab.active .tab-icon {
+  opacity: 1;
+}
+
+/* Велика кругла кнопка ＋ */
+.tab-add {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  margin: 0 4px;
+  margin-top: -24px; /* трохи виступає над панеллю */
+  border: 4px solid var(--bg);
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.tab-add:active {
+  filter: brightness(0.9);
+}
+
+/* ===== Звичайна кнопка ===== */
+.btn {
+  display: block;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 10px var(--gap);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ===== Нижня панель (bottom sheet) ===== */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  max-width: var(--max-width);
+  max-height: 90vh;
+  margin: 0 auto;
+  padding: var(--gap);
+  padding-bottom: calc(var(--gap) + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  background: var(--card);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 12px;
+  border-radius: 2px;
+  background: var(--muted);
+}
+
+.sheet-body {
+  min-height: 120px;
+}
+
+/* атрибут hidden має завжди ховати елемент */
+[hidden] {
+  display: none !important;
+}
