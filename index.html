@@ -3,8 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Копійка — простий особистий фінансовий трекер. Працює офлайн, дані зберігаються тільки на твоєму пристрої.">
   <meta name="theme-color" content="#0F1115">
+
+  <!-- Щоб на iPhone застосунок з головного екрана відкривався без адресного рядка -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Копійка">
+
   <title>Копійка</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
@@ -14,41 +25,18 @@
     <button class="icon-btn" type="button" data-screen="settings" aria-label="Налаштування">⚙️</button>
   </header>
 
-  <!-- Екрани. Видно тільки той, у якого є клас active -->
-  <main class="app-main">
-    <section class="screen active" id="screen-home">
-      <h2>Головна</h2>
-      <p class="muted">Тут буде баланс за місяць і останні записи.</p>
-    </section>
-
-    <section class="screen" id="screen-budget">
-      <h2>Бюджет</h2>
-      <p class="muted">Тут будуть ліміти за категоріями.</p>
-    </section>
-
-    <section class="screen" id="screen-subscriptions">
-      <h2>Підписки</h2>
-      <p class="muted">Тут будуть твої регулярні платежі.</p>
-    </section>
-
-    <section class="screen" id="screen-goals">
-      <h2>Цілі</h2>
-      <p class="muted">Тут будуть цілі накопичення.</p>
-    </section>
-
-    <section class="screen" id="screen-stats">
-      <h2>Статистика</h2>
-      <p class="muted">Тут буде діаграма витрат.</p>
-    </section>
-
-    <section class="screen" id="screen-settings">
-      <h2>Налаштування</h2>
-      <p class="muted">Тут будуть валюта, бекап і інші налаштування.</p>
-    </section>
+  <!-- Екрани. Вміст кожного малює app.js. Видно тільки той, у якого є клас active -->
+  <main class="app-main" id="main">
+    <section class="screen" id="screen-home" aria-label="Головна"></section>
+    <section class="screen" id="screen-budget" aria-label="Бюджет"></section>
+    <section class="screen" id="screen-subscriptions" aria-label="Підписки"></section>
+    <section class="screen" id="screen-goals" aria-label="Цілі"></section>
+    <section class="screen" id="screen-stats" aria-label="Статистика"></section>
+    <section class="screen" id="screen-settings" aria-label="Налаштування"></section>
   </main>
 
   <!-- Нижня панель навігації -->
-  <nav class="tab-bar" aria-label="Навігація">
+  <nav class="tab-bar" aria-label="Основна навігація">
     <button class="tab" type="button" data-screen="home">
       <span class="tab-icon" aria-hidden="true">🏠</span>
       <span class="tab-label">Головна</span>
@@ -57,7 +45,7 @@
       <span class="tab-icon" aria-hidden="true">📊</span>
       <span class="tab-label">Бюджет</span>
     </button>
-    <button class="tab-add" type="button" id="add-btn" aria-label="Новий запис">＋</button>
+    <button class="tab-add" type="button" data-action="add" aria-label="Додати запис">＋</button>
     <button class="tab" type="button" data-screen="subscriptions">
       <span class="tab-icon" aria-hidden="true">🔁</span>
       <span class="tab-label">Підписки</span>
@@ -68,16 +56,47 @@
     </button>
   </nav>
 
-  <!-- Нижня панель (bottom sheet) для нового запису -->
-  <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
-  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
+  <!-- Нижня панель (bottom sheet): у ній відкриваються всі форми -->
+  <div class="backdrop" id="sheet-backdrop" data-action="close-sheet"></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
     <div class="sheet-handle" aria-hidden="true"></div>
-    <h2 id="sheet-title">Новий запис</h2>
-    <div class="sheet-body">
-      <!-- Форма з'явиться у версії 0.2 -->
+    <div class="sheet-header">
+      <h2 class="sheet-title" id="sheet-title"></h2>
+      <button class="icon-btn sheet-close" type="button" data-action="close-sheet" aria-label="Закрити">✕</button>
     </div>
-    <button class="btn" type="button" id="sheet-close">Закрити</button>
+    <div class="sheet-body" id="sheet-body"></div>
   </div>
+
+  <!-- Власне вікно підтвердження замість confirm() -->
+  <div class="backdrop modal-backdrop" id="modal-backdrop"></div>
+  <div class="modal" id="modal" role="alertdialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-text">
+    <h2 class="modal-title" id="modal-title"></h2>
+    <p class="muted" id="modal-text"></p>
+    <div class="btn-row">
+      <button class="btn btn-secondary" type="button" id="modal-cancel"></button>
+      <button class="btn btn-primary" type="button" id="modal-ok"></button>
+    </div>
+  </div>
+
+  <!-- Екран привітання (тільки при першому запуску) -->
+  <div class="welcome" id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-title" hidden>
+    <div class="welcome-inner">
+      <div class="welcome-logo" aria-hidden="true">₴</div>
+      <h1 class="welcome-title" id="welcome-title">Привіт! Це Копійка 👋</h1>
+      <p class="muted">Записуй витрати й доходи, стеж за бюджетом, підписками та цілями. Усі дані зберігаються тільки на цьому пристрої.</p>
+      <p class="field-label" id="welcome-currency-label">Основна валюта</p>
+      <div id="welcome-currency"></div>
+      <button class="btn btn-primary" type="button" data-action="welcome-start">Почати</button>
+    </div>
+  </div>
+
+  <!-- Коротке повідомлення внизу екрана -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- Прихований вибір файлу для імпорту -->
+  <input class="sr-only" type="file" id="import-file" accept="application/json,.json" tabindex="-1" aria-hidden="true">
+
+  <noscript><p class="noscript">Для роботи Копійки потрібно увімкнути JavaScript.</p></noscript>
 
   <script src="./app.js"></script>
 </body>
