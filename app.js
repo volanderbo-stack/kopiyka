@@ -10,7 +10,7 @@ const STORAGE_KEY = "kopiyka-data";
 
 // Версія структури даних: 1 — v0.1, 2 — з валютою й курсом у кожному записі
 const DATA_VERSION = 2;
-const APP_VERSION = "1.0";
+const APP_VERSION = "1.1";
 
 // Найбільша сума, яку приймаємо: 999 999 999,99 (у копійках)
 const MAX_AMOUNT = 99999999999;
@@ -329,7 +329,9 @@ function migrate(raw) {
         period: s.period === "year" ? "year" : "month",
         nextDate,
         // "рідне" число списання: щоб після лютого підписка 31-го повернулась на 31-ше
-        day: day >= 1 && day <= 31 ? day : parseDate(nextDate).getDate()
+        day: day >= 1 && day <= 31 ? day : parseDate(nextDate).getDate(),
+        // чи рахувати в загальному підсумку (старі підписки — так)
+        inTotal: s.inTotal !== false
       };
     })
     .filter((s) => s.amount > 0);
@@ -516,20 +518,30 @@ function dueText(days) {
   return `через ${days} ${plural(days, "день", "дні", "днів")}`;
 }
 
+// Скільки підписка коштує за рік і за місяць (у її власній валюті)
+function subscriptionYearly(s) {
+  return s.period === "year" ? s.amount : s.amount * 12;
+}
+
+function subscriptionMonthly(s) {
+  return s.period === "year" ? s.amount / 12 : s.amount;
+}
+
+// Підсумок тільки по підписках з inTotal; окремо — скільки "не враховано"
 function subscriptionTotals() {
-  let monthly = 0;
-  let yearly = 0;
+  const result = { monthly: 0, yearly: 0, skippedCount: 0, skippedYearly: 0 };
   for (const s of data.subscriptions) {
-    const amount = convert(s.amount, s.currency);
-    if (s.period === "year") {
-      monthly += amount / 12;
-      yearly += amount;
+    const yearly = convert(subscriptionYearly(s), s.currency);
+    if (s.inTotal) {
+      result.monthly += convert(subscriptionMonthly(s), s.currency);
+      result.yearly += yearly;
     } else {
-      monthly += amount;
-      yearly += amount * 12;
+      result.skippedCount += 1;
+      result.skippedYearly += yearly;
     }
   }
-  return { monthly: Math.round(monthly), yearly: Math.round(yearly) };
+  result.monthly = Math.round(result.monthly);
+  return result;
 }
 
 // Чи показувати плашку "Давно не робив бекап"
@@ -730,11 +742,17 @@ function renderSubscriptions() {
     html += `<ul class="card tx-list">`;
     for (const s of subs) {
       const days = daysBetween(today, s.nextDate);
-      html += `<li><button class="tx" type="button" data-action="edit-sub" data-id="${esc(s.id)}">
+      // Другий рядок: скільки це за рік (для річних — ще й скільки на місяць)
+      let perYear = `${formatMoney(subscriptionYearly(s), s.currency)}/рік`;
+      if (s.period === "year") perYear += ` · ≈ ${formatMoney(Math.round(subscriptionMonthly(s)), s.currency)}/міс`;
+      if (s.currency !== data.settings.currency) perYear += ` (≈ ${formatMoney(convert(subscriptionYearly(s), s.currency))})`;
+      html += `<li><button class="tx${s.inTotal ? "" : " tx-skipped"}" type="button" data-action="edit-sub" data-id="${esc(s.id)}">
         <span class="tx-icon" aria-hidden="true">🔁</span>
         <span class="tx-main">
           <span class="tx-title">${esc(s.name)}</span>
           <span class="tx-sub">${s.period === "year" ? "щороку" : "щомісяця"} · ${formatDateShort(s.nextDate)}</span>
+          <span class="tx-sub tx-yearly">${perYear}</span>
+          ${s.inTotal ? "" : `<span class="tag">не в підсумку</span>`}
         </span>
         <span class="tx-amount">
           ${moneyWithApprox(s.amount, s.currency, convert(s.amount, s.currency))}
@@ -744,7 +762,12 @@ function renderSubscriptions() {
     }
     html += `</ul>`;
     const totals = subscriptionTotals();
-    html += `<div class="card total">Разом <b>${formatMoney(totals.monthly)}</b>/міс · <b>${formatMoney(totals.yearly)}</b>/рік</div>`;
+    html += `<div class="card total">Разом <b>${formatMoney(totals.monthly)}</b>/міс · <b>${formatMoney(totals.yearly)}</b>/рік`;
+    if (totals.skippedCount) {
+      const n = totals.skippedCount;
+      html += `<div class="small muted">Не враховано: ${n} ${plural(n, "підписка", "підписки", "підписок")} · ${formatMoney(totals.skippedYearly)}/рік</div>`;
+    }
+    html += `</div>`;
   }
   html += `<button class="btn btn-primary" type="button" data-action="new-sub">＋ Підписка</button>`;
 
@@ -1224,6 +1247,13 @@ function openSubForm(id) {
       <label class="field"><span class="field-label">Наступне списання</span>
         <input id="f-date" type="date" value="${s ? s.nextDate : todayStr()}"></label>
       <div class="field-error" id="err-date"></div>
+      <label class="switch-row">
+        <span>
+          <span class="switch-title">Рахувати в загальному підсумку</span>
+          <span class="small muted">Вимкни, якщо, наприклад, цю підписку оплачує хтось інший</span>
+        </span>
+        <input class="switch" id="f-intotal" type="checkbox"${!s || s.inTotal ? " checked" : ""}>
+      </label>
       <button class="btn btn-primary" type="submit">Зберегти</button>
       ${s ? `<button class="btn btn-danger" type="button" data-action="delete-sub">Видалити</button>` : ""}
     </form>`, s ? null : "f-name");
@@ -1256,7 +1286,8 @@ function saveSub() {
     currency: form.currency,
     period: form.period,
     nextDate,
-    day: parseDate(nextDate).getDate()
+    day: parseDate(nextDate).getDate(),
+    inTotal: $("f-intotal").checked
   };
   const old = data.subscriptions.find((s) => s.id === record.id);
   if (old) Object.assign(old, record);
