@@ -5,7 +5,7 @@
 // ============================================
 
 // Коли змінюєш файли застосунку — збільш версію, і старий кеш видалиться
-const CACHE_VERSION = "kopiyka-v1.1.0";
+const CACHE_VERSION = "kopiyka-v1.1.1";
 
 // Усі файли застосунку (шляхи відносні, бо сайт живе в /kopiyka/)
 const APP_FILES = [
@@ -19,10 +19,14 @@ const APP_FILES = [
   "./icons/apple-touch-icon.png"
 ];
 
-// Встановлення: кладемо всі файли в кеш
+// Встановлення: кладемо всі файли в кеш.
+// cache: "reload" — беремо файли прямо з сервера, а не з кешу браузера
+// (GitHub Pages просить браузер тримати файли 10 хвилин, і без цього нова версія
+// могла б "встановитись" зі старими файлами).
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(APP_FILES))
+    caches.open(CACHE_VERSION).then((cache) =>
+      cache.addAll(APP_FILES.map((url) => new Request(url, { cache: "reload" }))))
   );
   self.skipWaiting(); // нова версія вмикається одразу
 });
@@ -44,8 +48,9 @@ self.addEventListener("fetch", (event) => {
   // Чіпаємо тільки звичайні GET-запити до нашого ж сайту
   if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
 
-  // Свіжа версія з мережі (якщо інтернету немає — просто null)
-  const fromNetwork = fetch(request)
+  // Свіжа версія з мережі (якщо інтернету немає — просто null).
+  // cache: "no-cache" — браузер щоразу перепитує сервер, чи файл не змінився.
+  const fromNetwork = fetch(request, { cache: "no-cache" })
     .then((response) => {
       if (response.ok) {
         const copy = response.clone();

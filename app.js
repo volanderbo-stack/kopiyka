@@ -10,7 +10,7 @@ const STORAGE_KEY = "kopiyka-data";
 
 // Версія структури даних: 1 — v0.1, 2 — з валютою й курсом у кожному записі
 const DATA_VERSION = 2;
-const APP_VERSION = "1.1";
+const APP_VERSION = "1.1.1";
 
 // Найбільша сума, яку приймаємо: 999 999 999,99 (у копійках)
 const MAX_AMOUNT = 99999999999;
@@ -995,6 +995,8 @@ function closeSheet() {
     sheetReturnFocus.focus({ preventScroll: true });
   }
   sheetReturnFocus = null;
+  // Якщо поки була відкрита форма прийшла нова версія — вмикаємо її (після збереження даних)
+  if (reloadPending) setTimeout(reloadWhenSafe, 500);
 }
 
 // Помилки у формі: червона рамка + текст під полем
@@ -1043,6 +1045,7 @@ function confirmDialog({ title, text = "", okText = "Так", cancelText = "Ск
       modalBackdrop.classList.remove("open");
       if (returnFocus && document.contains(returnFocus)) returnFocus.focus({ preventScroll: true });
       resolve(answer);
+      if (reloadPending) setTimeout(reloadWhenSafe, 500);
     };
   });
 }
@@ -1705,14 +1708,41 @@ document.addEventListener("keydown", (event) => {
 
 // ===== 18. Офлайн-режим (service worker) =====
 
+let reloadPending = false;
+
+// Перезавантажує сторінку, щоб увімкнулась нова версія. Але не посеред форми чи вікна —
+// тоді чекаємо, поки людина їх закриє.
+function reloadWhenSafe() {
+  if (isSheetOpen() || modalResolve || !$("welcome").hidden) {
+    reloadPending = true;
+    return;
+  }
+  location.reload();
+}
+
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
   // Працює тільки на https або localhost
   if (location.protocol !== "https:" && location.hostname !== "localhost") return;
+
+  // Якщо сторінкою вже керувала стара версія, а тепер увімкнулась нова — перезавантажуємось
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (hadController) reloadWhenSafe();
+  });
+
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch((error) => {
-      console.warn("Service worker не зареєструвався:", error);
-    });
+    navigator.serviceWorker.register("./sw.js")
+      .then((registration) => {
+        // Застосунок на телефоні часто не закривається, а просто "засинає".
+        // Коли він знову на екрані — перевіряємо, чи немає нової версії.
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") registration.update().catch(() => {});
+        });
+      })
+      .catch((error) => {
+        console.warn("Service worker не зареєструвався:", error);
+      });
   });
 }
 
